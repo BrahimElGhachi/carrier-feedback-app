@@ -275,9 +275,7 @@ Gestion simple des carriers, catégories et statuts. Cet écran peut être repor
 ```text
 id
 name
-active
-createdAt
-updatedAt
+
 ```
 
 ### Entité `Feedback`
@@ -287,18 +285,10 @@ id
 carrierId
 authorName
 team
-observationDate
 mbrPeriod
 category
-type
 description
-impact
-expectedAction
-isRecurring
-relatedFeedbackId
-status
-createdAt
-updatedAt
+
 ```
 
 ### Entité `User` à prévoir ultérieurement
@@ -307,11 +297,8 @@ updatedAt
 id
 name
 email
-role
 team
-active
-createdAt
-updatedAt
+
 ```
 
 ---
