@@ -110,6 +110,8 @@ description
 createdAt
 ```
 
+Les maquettes utilisent trois catégories : Communication, Ponctualité et Documentation.
+
 ---
 
 ## Relations
@@ -150,45 +152,115 @@ Chaque feedback est associé à un seul carrier et à un seul auteur.
 | US-02 | En tant qu'utilisateur, je souhaite choisir un mois et voir les feedbacks par carrier afin de préparer la MBR. | Sélecteur de période. Un bloc par carrier avec ses feedbacks et leur auteur. Carriers sans feedback affichés. |
 | US-03 | En tant qu'utilisateur, je souhaite modifier un feedback. | Pop-up préremplie, données sauvegardées. |
 | US-04 | En tant qu'utilisateur, je souhaite supprimer un feedback. | Pop-up de confirmation avant suppression. |
-| US-05 | En tant qu'utilisateur, je souhaite filtrer l'historique des feedbacks. | Filtre par carrier, période MBR et catégorie, combinables. |
+| US-05 | En tant qu'utilisateur, je souhaite filtrer l'historique des feedbacks. | Filtre par carrier, période MBR et catégorie, combinables. Bouton de réinitialisation des filtres. |
 
 ---
 
 ## Écrans du MVP
 
-L'application compte **2 pages** et **3 pop-ups**.
+L'application compte **2 pages** et **3 pop-ups**. Toutes les pages partagent la même barre de navigation (logo « Carrier Feedback », onglets **Home** et **Historique**) et un pied de page rappelant que les données sont fictives et anonymisées.
 
 ### Pages
 
-#### Préparer la MBR (page d'accueil, `/`)
+#### Home (page d'accueil, `/`)
 
-- titre « Carrier Performance – Monthly Business Review » ;
-- sélecteur de période MBR (avec passage au mois précédent ou suivant) ;
-- un bloc par carrier avec ses feedbacks, l'auteur et les actions Modifier / Supprimer ;
-- bouton « Nouveau feedback » et bouton « Ajouter » par carrier.
+Page de préparation de la MBR.
+
+- sur-titre « Carrier Performance – Monthly Business Review » ;
+- sélecteur de période MBR (liste déroulante, avec boutons mois précédent / mois suivant) ;
+- bouton « + Nouveau feedback » ;
+- résumé de la période (ex. « 3 feedbacks pour 3 carriers ce mois-ci ») ;
+- un bloc par carrier, avec son nombre de feedbacks ;
+- pour chaque feedback : catégorie (badge), description, auteur, date et actions Modifier / Supprimer (icônes) ;
+- pour un carrier sans feedback : le message « Aucun feedback ce mois-ci pour ce carrier. »
 
 #### Historique (`/feedbacks`)
 
-- historique complet des feedbacks ;
-- filtres de recherche (carrier, période MBR, catégorie) ;
-- affichage regroupé par période MBR ou en liste simple (optionnel).
+- titre et sous-titre « Retrouvez un ancien retour, toutes périodes confondues. » ;
+- bouton « + Nouveau feedback » ;
+- filtres carrier, période MBR et catégorie (listes déroulantes, par défaut « Tous les carriers », « Toutes les périodes », « Toutes les catégories ») et bouton « Réinitialiser » ;
+- nombre de feedbacks affichés ;
+- bascule d'affichage : « Par période MBR » (par défaut, un groupe par mois) ou « Liste simple » ;
+- pour chaque feedback : carrier, catégorie, description, auteur, date et actions Modifier / Supprimer (icônes).
 
 ### Pop-ups
 
 #### Nouveau feedback
 
-- carrier, période MBR, catégorie, description ;
-- auteur choisi dans un menu déroulant.
+- carrier, période MBR (préremplie), catégorie, description ;
+- auteur choisi dans un menu déroulant (« Sélectionner votre nom ») ;
+- boutons « Annuler » et « Enregistrer », fermeture possible avec la croix ;
+- le bouton « + Nouveau feedback » est le seul point d'entrée de la création (Home et Historique) : le carrier se choisit dans la pop-up.
 
 #### Modification d'un feedback
 
 - même formulaire que la création, prérempli ;
-- date de création affichée, non modifiable.
+- date de création affichée (« Créé le 18/09/2026 »), non modifiable ;
+- boutons « Annuler » et « Enregistrer les modifications ».
 
 #### Confirmation de suppression
 
-- rappel du feedback concerné ;
+- titre « Supprimer ce feedback ? » et avertissement : l'action est définitive ;
+- rappel du feedback concerné (carrier · catégorie · période MBR, puis description) ;
 - boutons « Annuler » et « Supprimer ».
+
+### Maquettes
+
+Les captures sont rangées dans `docs/maquettes/`.
+
+| Écran | Fichier |
+|-------|---------|
+| Home | `Home_page.png` |
+| Historique | `History_of_feedbacks.png` |
+| Nouveau feedback | `New_feedback_popup.png` |
+| Modification d'un feedback | `Edit_a_feedback_popup.png` |
+| Confirmation de suppression | `Delete_a_feedback.png` |
+
+![Page Home](docs/maquettes/Home_page.png)
+
+![Page Historique](docs/maquettes/History_of_feedbacks.png)
+
+---
+
+## Routes
+
+### Routes front-end (pages)
+
+| Route | Page | Rôle |
+|-------|------|------|
+| `/` | Home | Préparer la MBR : choisir une période et voir les feedbacks regroupés par carrier |
+| `/feedbacks` | Historique | Consulter tous les feedbacks avec filtres |
+
+Les trois pop-ups (création, modification, suppression) ne sont pas des routes : ce sont des composants qui s'ouvrent par-dessus ces deux pages.
+
+Le mois sélectionné et les filtres sont conservés dans l'URL (paramètres de requête), ce qui permet de retrouver ou de partager une vue précise sans ajouter de route :
+
+```text
+/?mbr=2026-09
+/feedbacks?carrier=1&mbr=2026-09&category=Communication
+```
+
+### Routes back-end (API)
+
+Ces routes seront implémentées en **phase 3**, avec PostgreSQL. Pendant le prototype (phase 2), les pages lisent des données de démonstration via la couche d'accès `src/lib/data`, qui reprend la même logique que ces routes pour faciliter le passage à la base de données.
+
+| Méthode | Route | Rôle |
+|---------|-------|------|
+| `GET` | `/api/carriers` | Lister les carriers |
+| `GET` | `/api/authors` | Lister les auteurs (alimente le menu déroulant) |
+| `GET` | `/api/feedbacks` | Lister les feedbacks, avec filtres optionnels `carrierId`, `mbrPeriod`, `category` |
+| `POST` | `/api/feedbacks` | Créer un feedback |
+| `GET` | `/api/feedbacks/:id` | Récupérer un feedback |
+| `PUT` | `/api/feedbacks/:id` | Modifier un feedback |
+| `DELETE` | `/api/feedbacks/:id` | Supprimer un feedback |
+
+Exemple de requête pour la page d'accueil (feedbacks de septembre 2026) :
+
+```text
+GET /api/feedbacks?mbrPeriod=2026-09
+```
+
+Le regroupement par carrier est fait côté front-end, à partir des résultats de `/api/carriers` et `/api/feedbacks`. Cela permet d'afficher aussi les carriers sans feedback sur la période.
 
 ---
 
@@ -239,7 +311,19 @@ carrier-feedback-app/
 │   │   └── types/
 │   └── routes/
 │       ├── +page.svelte
-│       └── feedbacks/
+│       ├── feedbacks/
+│       │   └── +page.svelte
+│       └── api/                      (phase 3)
+│           ├── carriers/
+│           │   └── +server.ts
+│           ├── authors/
+│           │   └── +server.ts
+│           └── feedbacks/
+│               ├── +server.ts
+│               └── [id]/
+│                   └── +server.ts
+├── docs/
+│   └── maquettes/                (captures des maquettes)
 ├── static/
 ├── package.json
 └── README.md
@@ -288,6 +372,7 @@ npm run check
 
 - [ ] Mettre en place PostgreSQL
 - [ ] Créer le schéma de données (Carrier, Author, Feedback)
+- [ ] Créer les routes API (carriers, authors, feedbacks)
 - [ ] Sauvegarder les feedbacks
 - [ ] Héberger l'application pour que les équipes y accèdent
 
