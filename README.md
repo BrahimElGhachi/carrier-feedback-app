@@ -242,7 +242,7 @@ Le mois sélectionné et les filtres sont conservés dans l'URL (paramètres de 
 
 ### Routes back-end (API)
 
-Ces routes seront implémentées en **phase 3**, avec PostgreSQL. Pendant le prototype (phase 2), les pages lisent des données de démonstration via la couche d'accès `src/lib/data`, qui reprend la même logique que ces routes pour faciliter le passage à la base de données.
+Ces routes seront implémentées en **phase 3**, avec PostgreSQL. Pendant le prototype (phase 2), les pages lisent des données de démonstration via la couche d'accès `myapp/src/lib/data`, qui reprend la même logique que ces routes pour faciliter le passage à la base de données.
 
 | Méthode | Route | Rôle |
 |---------|-------|------|
@@ -302,32 +302,35 @@ Le regroupement par carrier est fait côté front-end, à partir des résultats 
 
 ```text
 carrier-feedback-app/
-├── src/
-│   ├── lib/
-│   │   ├── components/
-│   │   │   ├── FeedbackForm.svelte
-│   │   │   └── ConfirmDelete.svelte
-│   │   ├── data/
-│   │   └── types/
-│   └── routes/
-│       ├── +page.svelte
-│       ├── feedbacks/
-│       │   └── +page.svelte
-│       └── api/                      (phase 3)
-│           ├── carriers/
-│           │   └── +server.ts
-│           ├── authors/
-│           │   └── +server.ts
-│           └── feedbacks/
-│               ├── +server.ts
-│               └── [id]/
-│                   └── +server.ts
 ├── docs/
 │   └── maquettes/                (captures des maquettes)
-├── static/
-├── package.json
+├── myapp/                        (application SvelteKit)
+│   ├── src/
+│   │   ├── lib/
+│   │   │   ├── components/
+│   │   │   │   ├── FeedbackForm.svelte
+│   │   │   │   └── ConfirmDelete.svelte
+│   │   │   ├── data/
+│   │   │   └── types/
+│   │   └── routes/
+│   │       ├── +page.svelte
+│   │       ├── feedbacks/
+│   │       │   └── +page.svelte
+│   │       └── api/              (phase 3)
+│   │           ├── carriers/
+│   │           │   └── +server.ts
+│   │           ├── authors/
+│   │           │   └── +server.ts
+│   │           └── feedbacks/
+│   │               ├── +server.ts
+│   │               └── [id]/
+│   │                   └── +server.ts
+│   ├── static/
+│   └── package.json
 └── README.md
 ```
+
+Le README et la documentation sont à la racine du dépôt, l'application est dans `myapp/`.
 
 Le composant `FeedbackForm.svelte` sert à la fois à la création et à la modification.
 
@@ -336,6 +339,8 @@ Le composant `FeedbackForm.svelte` sert à la fois à la création et à la modi
 ## Installation
 
 ```bash
+git clone <url-du-depot>
+cd carrier-feedback-app/myapp
 npm install
 npm run dev
 ```
@@ -343,6 +348,8 @@ npm run dev
 ---
 
 ## Commandes utiles
+
+À lancer depuis le dossier `myapp/` :
 
 ```bash
 npm run dev
