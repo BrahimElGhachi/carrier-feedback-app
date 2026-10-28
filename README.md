@@ -370,10 +370,10 @@ npm run check
 
 ### Phase 2 - Prototype Front-End
 
-- [ ] Initialiser le projet SvelteKit
-- [ ] Créer les composants (formulaire, confirmation de suppression)
-- [ ] Créer les 2 pages principales
-- [ ] Utiliser des données de démonstration
+- [x] Initialiser le projet Svelte + Vite
+- [x] Créer les composants (formulaire, confirmation de suppression)
+- [x] Créer les 2 pages principales
+- [x] Utiliser des données de démonstration
 
 ### Phase 3 - Persistance partagée
 
