@@ -25,7 +25,6 @@
       id: 1,
       carrierId: 1,
       authorId: 1,
-      carrierName: 'Carrier A',
       category: 'Communication',
       mbrPeriod: '2026-09',
       description:
@@ -36,7 +35,6 @@
       id: 2,
       carrierId: 1,
       authorId: 2,
-      carrierName: 'Carrier A',
       category: 'Documentation',
       mbrPeriod: '2026-09',
       description: 'Description du feedback à renseigner.',
@@ -46,7 +44,6 @@
       id: 3,
       carrierId: 2,
       authorId: 3,
-      carrierName: 'Carrier B',
       category: 'Ponctualité',
       mbrPeriod: '2026-09',
       description: 'Description du feedback à renseigner.',
@@ -56,7 +53,6 @@
       id: 4,
       carrierId: 3,
       authorId: 2,
-      carrierName: 'Carrier C',
       category: 'Communication',
       mbrPeriod: '2026-08',
       description: 'Description du feedback à renseigner.',
@@ -66,7 +62,6 @@
       id: 5,
       carrierId: 2,
       authorId: 3,
-      carrierName: 'Carrier B',
       category: 'Ponctualité',
       mbrPeriod: '2026-08',
       description: 'Description du feedback à renseigner.',
@@ -228,7 +223,7 @@
   // Enregistre un feedback (création ou modification). Appelée par FeedbackForm via la prop onSave
   // (onSave={saveFeedback} dans le HTML) : props.onSave(...) dans FeedbackForm appelle cette fonction.
   // Le paramètre "values" reçoit l'objet envoyé par le formulaire : carrierId, authorId, mbrPeriod,
-  // category et description (sans id, carrierName ni createdAt). Il recoit ces infos du composant enfant (props)
+  // category et description (sans id ni createdAt). Il recoit ces infos du composant enfant (props)
   // La fonction ne touche jamais au HTML : elle modifie des variables d'état
   // (feedbacks, selectedPeriod, message, formMode) et Svelte met automatiquement l'écran à jour.
   function saveFeedback(values) {
@@ -258,12 +253,12 @@
       // Si item.id correspond au feedback sélectionné, on retourne une version modifiée :
       // - ...item conserve les anciennes propriétés (notamment id et createdAt) ;
       // - ...values écrase les propriétés modifiées dans le formulaire ;
-      // - carrierId et carrierName sont remis à jour depuis le carrier validé.
+      // - carrierId est remis à jour depuis le carrier validé.
       // Sinon (: item), le feedback est retourné sans modification.
       // Réaffecter feedbacks déclenche le recalcul de tous les $derived et la mise à jour du HTML.
       feedbacks = feedbacks.map((item) =>
         item.id === feedback.id
-          ? { ...item, ...values, carrierId: carrier.id, carrierName: carrier.name }
+          ? { ...item, ...values, carrierId: carrier.id }
           : item,
       )
       message = 'Le feedback a été modifié.'
@@ -277,7 +272,7 @@
       //   Le spread (...) transforme le tableau d'ids en arguments pour Math.max.
       //   Le 0 évite -Infinity si le tableau est vide (le premier id sera alors 1) ;
       // - ...values : reprend les données saisies dans le formulaire ;
-      // - carrierId et carrierName : issus du carrier validé, ils écrasent / complètent values ;
+      // - carrierId : issu du carrier validé, il écrase / complète values ;
       // - authorId : version convertie en nombre, qui écrase celle de values ;
       // - createdAt : date de création générée automatiquement au format ISO.
       feedbacks = [
@@ -287,7 +282,6 @@
           ...values,
           carrierId: carrier.id,
           authorId,
-          carrierName: carrier.name,
           createdAt: new Date().toISOString(),
         },
       ]
@@ -340,6 +334,11 @@
   function formatDate(value) {
     const date = new Date(value)
     return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('fr-FR')
+  }
+
+  // Retrouve le nom du carrier à partir de son identifiant.
+  function carrierName(carrierId) {
+    return carriers.find((carrier) => String(carrier.id) === String(carrierId))?.name ?? ''
   }
 
   function authorName(authorId) {
@@ -734,9 +733,10 @@ Remark : tout ce qui est écrit comme attribut dans la balise du composant devie
   />
 {/if}
 
-{#if showDeleteConfirmation}
+{#if showDeleteConfirmation && feedback}
   <ConfirmDelete
-    feedback={feedback}
+    {feedback}
+    carrierName={carrierName(feedback.carrierId)}
     onConfirm={deleteFeedback}
     onCancel={() => (showDeleteConfirmation = false)}
   />

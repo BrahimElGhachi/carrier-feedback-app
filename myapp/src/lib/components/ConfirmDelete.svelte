@@ -3,7 +3,7 @@
 
   /**
    * @typedef {{
-   *   carrierName: string,
+   *   carrierId: string | number,
    *   category: string,
    *   mbrPeriod: string,
    *   description: string
@@ -13,11 +13,12 @@
   /**
    * @type {{
    *   feedback: FeedbackSummary,
+   *   carrierName: string,
    *   onConfirm: () => void,
    *   onCancel: () => void
    * }}
    */
-  let { feedback, onConfirm, onCancel } = $props()
+  let { feedback, carrierName, onConfirm, onCancel } = $props()
   /** @type {HTMLDialogElement | null} */
   let dialogElement = null
 
@@ -90,7 +91,7 @@
 
     <div class="feedback-summary">
       <p class="summary-title">
-        {feedback.carrierName} · {feedback.category} · MBR {feedback.mbrPeriod}
+        {carrierName} · {feedback.category} · MBR {feedback.mbrPeriod}
       </p>
       <p class="summary-description">{feedback.description}</p>
     </div>
