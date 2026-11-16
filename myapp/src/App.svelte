@@ -16,6 +16,8 @@
     { id: 1, fullName: 'Brahim El Ghachi' },
     { id: 2, fullName: 'Franck Vossenat' },
     { id: 3, fullName: 'Yi-Shin Cai' },
+    { id: 4, fullName: 'Orsolya Varga' },
+    { id: 5, fullName: 'Christian Lucas Tenas' },
   ]
 
   let feedbacks = $state([
@@ -72,7 +74,7 @@
     },
   ])
   const categories = ['Communication', 'Ponctualité', 'Documentation', 'Suivi', 'Finance']
-  const initialPeriods = ['2026-09', '2026-08', '2026-07']
+  const initialPeriods = ['2026-09', '2026-08', '2026-07', '2026-06']
 
   // VARIABLES D'ETAT //
 
@@ -99,31 +101,67 @@
 // 'period' = feedbacks regroupés par période MBR
 // 'list' = tous les feedbacks dans une liste simple
   let historyDisplayMode = $state('period')
-  // Stocke l'id du feedback actuellement sélectionné.
+  // Stocke l'id du feedback actuellement sélectionné (uniquement l'ID sans le contenu du feedback à savoir l'objet complet)
 // null signifie qu'aucun feedback n'est sélectionné.
 // Cette valeur est notamment utilisée pour retrouver le feedback
-// à modifier ou à supprimer dans le tableau feedbacks.
+// à modifier ou à supprimer dans le tableau feedbacks
   let selectedFeedbackId = $state(null)
-  // $derived permet de créer une valeur calculée automatiquement
-  // à partir d'autres données réactives.
-  // Si une donnée utilisée dans le calcul change,
-  // Svelte recalcule automatiquement la valeur dérivée.
-  // Recherche automatiquement dans feedbacks le feedback dont l'id
-// correspond à selectedFeedbackId.
-// Si selectedFeedbackId ou feedbacks change,
-// Svelte recalcule automatiquement la variable feedback.
+  // $derived permet de créer une valeur calculée automatiquement à partir d'autres données réactives.
+  // Si une donnée utilisée dans le calcul change, Svelte recalcule automatiquement la valeur dérivée.
+  // Recherche automatiquement dans feedbacks le feedback dont l'id correspond à selectedFeedbackId.
+// Si selectedFeedbackId ou feedbacks change, Svelte recalcule automatiquement la variable feedback.
+
+// Variable calculée automatiquement à partir de feedbacks et selectedFeedbackId. Cette variable sert principalement à la modification et à la suppression d'un feedback. Elle cherche d'abord l'id du feedback puis l'objet complet qu'elle stocke dans la variable "feedback"
+// La méthode find() parcourt le tableau feedbacks et retourne le premier élément
+// dont l'id est égal à selectedFeedbackId.
+// "item" (variable temporaire) représente chaque feedback examiné successivement dans le tableau.
+// Si selectedFeedbackId ou feedbacks change, $derived recalcule automatiquement feedback.
+// Si aucun feedback ne correspond à l'id recherché, find() retourne undefined.
   let feedback = $derived(feedbacks.find((item) => item.id === selectedFeedbackId))
+  
+// Variable qui crée automatiquement la liste de toutes les périodes MBR disponibles dans l'application (sur les pages Home et History).
+// Combine les périodes prévues dans initialPeriods avec celles présentes dans feedbacks (propriété mbrPeriod).
+// map() crée un nouveau tableau en parcourant chaque feedback pour ne récupérer que sa période mbrPeriod.
+// Le spread (...) extrait les éléments des deux tableaux afin de les réunir dans un seul tableau.
+// Set supprime ensuite les périodes présentes en double.
+// Le spread (...) placé devant le Set extrait ses valeurs afin de les replacer dans un nouveau tableau.
+// Enfin, sort() classe les périodes de la plus récente à la plus ancienne.
+// Cette variable permet ainsi d'ajouter automatiquement de nouvelles périodes à la liste lorsqu'un feedback est créé,
+// sans devoir les ajouter manuellement dans initialPeriods.
   let availablePeriods = $derived(
     [...new Set([...initialPeriods, ...feedbacks.map((item) => item.mbrPeriod)])].sort(
       (a, b) => b.localeCompare(a),
     ),
   )
+
+// Variable qui contient uniquement les feedbacks de la période MBR sélectionnée.
+// filter() parcourt feedbacks et conserve les feedbacks dont mbrPeriod correspond à selectedPeriod.
+// Comme il s'agit d'un $derived, la liste est recalculée automatiquement lorsque feedbacks ou selectedPeriod change.
+// Cette variable permet à la page Home d'afficher et de compter uniquement les feedbacks correspondant à la période MBR actuellement sélectionnée.
   let monthlyFeedbacks = $derived(
     feedbacks.filter((item) => item.mbrPeriod === selectedPeriod),
   )
+
+// Cette variable calcule combien de carriers différents ont au moins un feedback pour la période MBR sélectionnée. Il s'agit du message sur la page "home" (ex : 3 feedbacks pour 2 carriers ce mois-ci)
+// Variable qui calcule le nombre de carriers différents ayant au moins un feedback pour la période MBR sélectionnée.
+// map() récupère le carrierId de chaque feedback présent dans monthlyFeedbacks.
+// String() convertit les carrierId en chaînes de caractères afin d'uniformiser leur format (ex : ["1", "1", "2"])
+// Set supprime les carrierId présents en double (ex : ["1", "2"])
+// .size retourne ensuite le nombre de carrierId uniques (ex : 2).
+// Comme il s'agit d'un $derived, le nombre est recalculé automatiquement lorsque monthlyFeedbacks change.
   let activeCarrierCount = $derived(
     new Set(monthlyFeedbacks.map((item) => String(item.carrierId))).size,
   )
+// Variable qui contient les feedbacks à afficher dans la page Historique.
+// Elle part du tableau feedbacks qui contient tous les feedbacks sous forme d'objets complets.
+// filter() parcourt chaque feedback, représenté temporairement par "item",
+// et conserve uniquement les objets qui correspondent aux filtres sélectionnés : carrier, période MBR et catégorie.
+// Pour chaque filtre, s'il est vide (''), aucun filtrage n'est effectué sur ce critère (et par défaut affiche toutes les données des 3 filtres)
+// String() permet de convertir les carrierId en chaînes de caractères afin de comparer des valeurs du même type.
+// Les conditions && imposent que tous les filtres actifs soient respectés.
+// filter() conserve l'objet feedback complet : les autres propriétés comme createdAt restent donc disponibles.
+// sort() utilise ensuite createdAt pour classer les feedbacks du plus récent au plus ancien.
+// Comme il s'agit d'un $derived, la liste est recalculée automatiquement lorsque feedbacks ou l'un des filtres change.
   let historyFeedbacks = $derived(
     feedbacks
       .filter(
@@ -134,6 +172,28 @@
       )
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
   )
+
+// Variable qui regroupe les feedbacks de historyFeedbacks par période MBR.
+// $derived.by() permet d'effectuer ce calcul automatiquement chaque fois que historyFeedbacks change.
+//
+// groups est une Map qui sert à ranger les feedbacks par période.
+// La période MBR est utilisée comme clé (ex : "2026-09") et la valeur associée
+// est un tableau contenant tous les objets feedback de cette période.
+//
+// La boucle for...of parcourt historyFeedbacks.
+// À chaque tour, "item" est une variable temporaire qui contient l'objet feedback complet actuellement parcouru.
+//
+// groups.get(item.mbrPeriod) cherche si un groupe existe déjà pour la période du feedback.
+// Si aucun groupe n'existe encore, ?? [] crée un tableau vide.
+//
+// group.push(item) ajoute l'objet feedback complet dans le groupe correspondant à sa période.
+//
+// groups.set(item.mbrPeriod, group) enregistre ensuite le groupe dans la Map
+// en utilisant la période MBR comme clé.
+//
+// Enfin, groups.entries() récupère chaque couple [période, tableau de feedbacks]
+// et le spread (...) permet de placer ces couples dans un tableau.
+//
   let historyGroups = $derived.by(() => {
     const groups = new Map()
     for (const item of historyFeedbacks) {
@@ -146,28 +206,61 @@
 
   // FONCTIONS //
 
-  // Fonctions pour ouvrir le formulaire. Le paramètre "mode" reçoit "create" ou "edit" suivant le click de l'utilisateur. Cf écouteur d'évènement sur le bouton "on-click" qui figure dans le HTML 
+  // Ouvre le formulaire de création ou de modification.
+// Appelée depuis le HTML par le bouton "Nouveau feedback" : openForm('create')
+// et par le bouton "Modifier" (crayon) : openForm('edit', item).
+// Le paramètre "mode" reçoit 'create' ou 'edit' selon le bouton cliqué.
+// Le paramètre "item" reçoit l'objet feedback de la ligne cliquée (mode 'edit' uniquement).
+// Il vaut null par défaut, ce qui est le cas en mode 'create'.
+// message = '' efface l'ancienne notification.
+// item?.id récupère l'id du feedback seulement si item existe (?. évite une erreur si item = null).
+// ?? null met null si aucun id n'est trouvé : aucun feedback n'est alors sélectionné.
+// formMode = mode change l'état du formulaire : le {#if formMode} en bas du HTML
+// affiche alors le composant FeedbackForm.
   function openForm(mode, item = null) {
     message = ''
     selectedFeedbackId = item?.id ?? null
     formMode = mode
   }
 
-  //  Fonction qui enregistre un feedback. Le composant envoie qque chose dans le paramètre (values). FormMode = null (ferme le formulaire)
+//  Fonction qui enregistre un feedback. Le composant envoie qque chose dans le paramètre (values). FormMode = null (ferme le formulaire)
+  
+  // Enregistre un feedback (création ou modification). Appelée par FeedbackForm via la prop onSave
+  // (onSave={saveFeedback} dans le HTML) : props.onSave(...) dans FeedbackForm appelle cette fonction.
+  // Le paramètre "values" reçoit l'objet envoyé par le formulaire : carrierId, authorId, mbrPeriod,
+  // category et description (sans id, carrierName ni createdAt). Il recoit ces infos du composant enfant (props)
+  // La fonction ne touche jamais au HTML : elle modifie des variables d'état
+  // (feedbacks, selectedPeriod, message, formMode) et Svelte met automatiquement l'écran à jour.
   function saveFeedback(values) {
+  // Recherche dans le tableau carriers l'objet carrier choisi dans le formulaire.
+    // "item" est une variable temporaire : le carrier examiné à chaque tour.
+    // String() convertit les deux ids en texte pour comparer des valeurs du même type.
+    // Si aucun carrier n'est trouvé, find() retourne undefined.
     const carrier = carriers.find(
       (item) => String(item.id) === String(values.carrierId),
     )
+    // Si le carrier n'existe pas, on écrit un message d'erreur (affiché par {#if message} dans le HTML)
+    // et return arrête la fonction : rien n'est enregistré.
     if (!carrier) {
       message = 'Veuillez sélectionner un carrier valide.'
       return
     }
-
+// Mode MODIFICATION : formMode vaut 'edit' si l'utilisateur a cliqué sur le crayon.
+    // "feedback" est la variable $derived qui contient l'objet complet retrouvé grâce à selectedFeedbackId.
+    // S'il est introuvable, on affiche une erreur et on arrête la fonction.
     if (formMode === 'edit') {
       if (!feedback) {
         message = 'Le feedback à modifier est introuvable.'
         return
       }
+    // map() parcourt tous les feedbacks et crée un NOUVEAU tableau.
+      // "item" représente chaque feedback parcouru.
+      // Si item.id correspond au feedback sélectionné, on retourne une version modifiée :
+      // - ...item conserve les anciennes propriétés (notamment id et createdAt) ;
+      // - ...values écrase les propriétés modifiées dans le formulaire ;
+      // - carrierId et carrierName sont remis à jour depuis le carrier validé.
+      // Sinon (: item), le feedback est retourné sans modification.
+      // Réaffecter feedbacks déclenche le recalcul de tous les $derived et la mise à jour du HTML.
       feedbacks = feedbacks.map((item) =>
         item.id === feedback.id
           ? { ...item, ...values, carrierId: carrier.id, carrierName: carrier.name }
@@ -175,7 +268,18 @@
       )
       message = 'Le feedback a été modifié.'
     } else {
+      // Mode CRÉATION : exécuté quand formMode n'est pas 'edit' (clic sur "Nouveau feedback").
+      // Number() convertit authorId en nombre pour garder le même type que le tableau authors.
       const authorId = Number(values.authorId)
+      // On crée un nouveau tableau : les anciens feedbacks (...feedbacks) + un nouvel objet à la fin.
+      // Propriétés du nouvel objet (si une propriété apparaît deux fois, la dernière l'emporte) :
+      // - id : Math.max(0, ...ids) + 1 = le plus grand id existant + 1.
+      //   Le spread (...) transforme le tableau d'ids en arguments pour Math.max.
+      //   Le 0 évite -Infinity si le tableau est vide (le premier id sera alors 1) ;
+      // - ...values : reprend les données saisies dans le formulaire ;
+      // - carrierId et carrierName : issus du carrier validé, ils écrasent / complètent values ;
+      // - authorId : version convertie en nombre, qui écrase celle de values ;
+      // - createdAt : date de création générée automatiquement au format ISO.
       feedbacks = [
         ...feedbacks,
         {
@@ -187,13 +291,35 @@
           createdAt: new Date().toISOString(),
         },
       ]
+       // La page Home bascule sur la période du feedback créé, pour qu'il soit visible immédiatement.
       selectedPeriod = values.mbrPeriod
+      // Remplit message : le bloc {#if message} du HTML affiche alors la notification.
       message = 'Le feedback a été ajouté.'
     }
+    // Cette ligne est en dehors du if/else : elle s'exécute après une modification OU une création.
+    // formMode passe à null, donc {#if formMode} devient faux dans le HTML :
+    // le composant FeedbackForm est retiré de la page et la fenêtre se ferme.
     formMode = null
   }
 
   // Fonction qui supprime un feedback et ferme le pop-up (showDeleteConfirmation = false) 
+  // Supprime le feedback actuellement sélectionné.
+//
+// Le clic sur l’icône de suppression place d’abord l’id du feedback
+// dans selectedFeedbackId et ouvre le composant ConfirmDelete.
+//
+// La variable dérivée "feedback" retrouve ensuite l’objet complet
+// correspondant à selectedFeedbackId.
+//
+// Si ce feedback est introuvable, un message d’erreur est affiché,
+// la fenêtre de confirmation est fermée et return arrête la fonction.
+//
+// Sinon, filter() crée un nouveau tableau contenant tous les feedbacks
+// dont l’id est différent de celui du feedback sélectionné.
+// Le feedback correspondant est donc exclu du nouveau tableau.
+//
+// Après la suppression, un message de confirmation est affiché
+// et showDeleteConfirmation passe à false pour fermer la fenêtre.
   function deleteFeedback() {
     if (!feedback) {
       message = 'Le feedback à supprimer est introuvable.'
@@ -234,7 +360,15 @@
     content="Suivez et gérez les retours fictifs sur la performance des carriers."
   />
 </svelte:head>
-
+   <!--
+      LOGO CLIQUABLE
+      onclick={() => (currentPage = 'home')} : un clic sur le logo ramène à l'accueil.
+      Le "() =>" est indispensable : c'est une fonction fléchée, une action
+      "à exécuter plus tard, au clic". Sans elle, l'affectation currentPage = 'home'
+      s'exécuterait une seule fois au chargement de la page, pas au clic.
+      Remarque : contrairement au lien "Home", le logo ne vide pas message.
+      Si une notification est affichée, elle reste visible après le clic sur le logo.
+    -->
 <div class="app-shell">
   <header class="topbar">
     <a class="brand" href="#home" aria-label="Carrier Feedback, accueil" onclick={() => (currentPage = 'home')}>
@@ -245,6 +379,21 @@
       </span>
       <span>Carrier Feedback</span>
     </a>
+      <!--
+        LIEN "HOME"
+        Quatre mécanismes sur la même balise :
+        - href="#home" : change seulement la fin de l'URL. L'application ne la lit jamais,
+          c'est currentPage qui décide de la page affichée (qui est une fonction)
+        - class:active={currentPage === 'home'} : ajoute la classe CSS "active"
+          si la condition est vraie, la retire sinon. C'est ce qui grise le lien
+          de la page courante (voir "nav a.active" dans le CSS).
+        - aria-current={... ? 'page' : undefined} : indique aux lecteurs d'écran
+          quelle est la page courante. Si la valeur est undefined, Svelte n'écrit
+          pas l'attribut du tout.
+        - onclick={() => { ... }} : deux instructions, donc des accolades.
+          On change de page ET on vide message, pour que la notification
+          ("Le feedback a été ajouté") ne reste pas affichée sur l'autre page.
+      -->
     <nav aria-label="Navigation principale">
       <a
         href="#home"
@@ -255,6 +404,7 @@
           message = ''
         }}
       >Home</a>
+      <!-- LIEN "HISTORIQUE" : même mécanisme que "Home", avec la valeur 'history'. -->
       <a
         href="#history"
         class:active={currentPage === 'history'}
@@ -266,56 +416,124 @@
       >Historique</a>
     </nav>
   </header>
-
+  <!--
+    BALISE <main>
+    class:history-page={currentPage === 'history'} : même principe que class:active.
+    La classe "history-page" est ajoutée uniquement sur la page Historique,
+    ce qui permet d'ajuster son style (voir "main.history-page" dans le CSS).
+  -->
   <main class:history-page={currentPage === 'history'}>
+  <!--
+      AIGUILLAGE PRINCIPAL : c'est ici que se fait le vrai "changement de chaîne".
+      {#if currentPage === 'home'} : si currentPage vaut 'home', Svelte affiche
+      le bloc de la page Home et retire l'autre du DOM.
+      {:else} : sinon (currentPage vaut 'history'), il affiche la page Historique.
+      Un seul des deux blocs existe dans la page à un instant donné.
+    -->
     {#if currentPage === 'home'}
       <p class="eyebrow">CARRIER PERFORMANCE – MONTHLY BUSINESS REVIEW</p>
       <div class="home-toolbar">
         <div>
           <label class="period-label" for="home-period">Période MBR</label>
+              <!--
+        FLÈCHE "PÉRIODE PRÉCÉDENTE"
+        onclick appelle shiftPeriod(selectedPeriod, -1) : on passe la période
+        actuelle et un décalage de -1 mois. shiftPeriod recalcule la période
+        et modifie selectedPeriod. Les flèches ne sont donc que des télécommandes
+        pour changer la valeur du <select>.
+      -->
           <div class="period-picker">
             <button class="period-arrow" aria-label="Période précédente" onclick={() => shiftPeriod(selectedPeriod, -1)}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
             </button>
+              <!--
+        SÉLECTEUR DE PÉRIODE
+        bind:value={selectedPeriod} : lien dans les deux sens.
+        - Tu choisis une option → selectedPeriod change.
+        - selectedPeriod change (via les flèches) → le <select> affiche la nouvelle valeur.
+        {#each availablePeriods as period (period)} : une <option> par période
+        disponible. availablePeriods est le $derived qui fusionne initialPeriods
+        et les périodes des feedbacks. (period) est la clé : chaque période est unique.
+      -->
             <select id="home-period" bind:value={selectedPeriod}>
               {#each availablePeriods as period (period)}
                 <option value={period}>{period}</option>
               {/each}
             </select>
+             <!-- FLÈCHE "PÉRIODE SUIVANTE" : même principe, avec +1. -->
             <button class="period-arrow" aria-label="Période suivante" onclick={() => shiftPeriod(selectedPeriod, 1)}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
             </button>
           </div>
         </div>
+         <!--
+    BOUTON "NOUVEAU FEEDBACK"
+    openForm('create') met formMode à 'create'. Le {#if formMode} en bas du fichier
+    affiche alors FeedbackForm. Aucun item n'est transmis : le formulaire sera vide.
+  -->
         <button class="button button-primary new-feedback" onclick={() => openForm('create')}>
           <span aria-hidden="true">＋</span> Nouveau feedback
         </button>
       </div>
-
+<!--
+  NOTIFICATION
+  {#if message} : une chaîne vide est "falsy", donc le bloc n'apparaît que si
+  une fonction a rempli message (ex : "Le feedback a été ajouté.").
+  role="status" : les lecteurs d'écran annoncent le message automatiquement.
+-->
       {#if message}
         <p class="notice" role="status">{message}</p>
       {/if}
-
+<!--
+  COMPTEUR
+  {monthlyFeedbacks.length} affiche le nombre de feedbacks de la période.
+  Les ternaires gèrent le pluriel : si length === 1 on n'ajoute rien, sinon on ajoute "s".
+  activeCarrierCount est le $derived qui compte les carriers distincts.
+-->
       <p class="results-count">
         {monthlyFeedbacks.length} feedback{monthlyFeedbacks.length === 1 ? '' : 's'} pour {activeCarrierCount} carrier{activeCarrierCount === 1 ? '' : 's'} ce mois-ci.
       </p>
 
       <section class="carrier-list" aria-label="Feedbacks par carrier">
+      <!--
+    UNE CARTE PAR CARRIER
+    {#each carriers as carrier (carrier.id)} : le bloc est répété pour chaque carrier
+    (Maersk Line, CMA CGM, Hapag Lloyd).
+
+    {@const carrierFeedbacks = ...} : calcul local, valable uniquement dans cette
+    itération. Pour le carrier courant :
+    1. monthlyFeedbacks.filter(...) garde les feedbacks de CE carrier
+       (String() des deux côtés pour comparer des valeurs de même type) ;
+    2. .sort(...) les classe du plus récent au plus ancien grâce à createdAt.
+    Comme filter() crée un nouveau tableau, le sort() ne modifie pas monthlyFeedbacks.
+  -->
         {#each carriers as carrier (carrier.id)}
           {@const carrierFeedbacks = monthlyFeedbacks.filter((item) => String(item.carrierId) === String(carrier.id)).sort((a, b) => b.createdAt.localeCompare(a.createdAt))}
           <article class="carrier-card">
             <header class="carrier-heading">
               <h2>{carrier.name}</h2>
+                <!-- Ternaire à 3 cas : aucun feedback / 1 feedback / plusieurs feedbacks. -->
               <span>
                 {carrierFeedbacks.length === 0
                   ? 'aucun feedback'
                   : `${carrierFeedbacks.length} feedback${carrierFeedbacks.length === 1 ? '' : 's'}`}
               </span>
             </header>
+             <!--
+        {#if carrierFeedbacks.length} : 0 est "falsy", donc le bloc ne s'affiche
+        que s'il y a au moins un feedback. {:else} affiche sinon le message vide.
+      -->
             {#if carrierFeedbacks.length}
               <div class="feedback-list">
+                <!-- Une ligne par feedback du carrier. item = le feedback de la ligne. -->
                 {#each carrierFeedbacks as item (item.id)}
                   <div class="feedback-row home-feedback-row">
+                    <!--
+                BADGE DE CATÉGORIE
+                Trois class:xxx={condition} sur la même balise : une seule condition
+                est vraie à la fois, donc une seule classe de couleur est ajoutée.
+                Suivi et Finance n'ont pas de classe : ils gardent le style neutre.
+              -->
                     <span class:communication={item.category === 'Communication'} class:punctuality={item.category === 'Ponctualité'} class:documentation={item.category === 'Documentation'} class="category-badge">{item.category}</span>
                     <div class="feedback-copy">
                       <p>{item.description}</p>
@@ -323,9 +541,23 @@
                     </div>
                     <time datetime={item.createdAt}>{formatDate(item.createdAt)}</time>
                     <div class="row-actions">
+                    <!--
+                  BOUTON MODIFIER
+                  openForm('edit', item) : mode 'edit' + l'objet de la ligne cliquée.
+                  openForm mémorise item.id dans selectedFeedbackId, ce qui alimente
+                  le $derived "feedback" transmis ensuite au formulaire.
+                -->
                       <button class="icon-button" aria-label={`Modifier le feedback de ${carrier.name}`} onclick={() => openForm('edit', item)}>
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.3-.9L19 8.4a2.1 2.1 0 0 0-3-3L5.3 16.1 4 20Z" /></svg>
                       </button>
+                      <!--
+                  BOUTON SUPPRIMER
+                  Trois instructions au clic :
+                  1. selectedFeedbackId = item.id : on mémorise la ligne concernée ;
+                  2. showDeleteConfirmation = true : on ouvre le pop-up ConfirmDelete ;
+                  3. message = '' : on efface l'ancienne notification.
+                  La suppression réelle n'a lieu qu'après confirmation (deleteFeedback).
+                -->
                       <button class="icon-button delete-action" aria-label={`Supprimer le feedback de ${carrier.name}`} onclick={() => { selectedFeedbackId = item.id; showDeleteConfirmation = true; message = '' }}>
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" /></svg>
                       </button>
@@ -345,6 +577,9 @@
           <h1>Historique</h1>
           <p>Retrouvez un ancien retour, toutes périodes confondues.</p>
         </div>
+        <!-- Bouton de création : au clic, appelle openForm('create').
+     () => ... est nécessaire pour que la fonction ne s'exécute qu'au clic et non au chargement de la page.
+     Aucun feedback n'est envoyé : item vaut null dans openForm() et le formulaire s'ouvre vide. -->
         <button class="button button-primary new-feedback" onclick={() => openForm('create')}>
           <span aria-hidden="true">＋</span> Nouveau feedback
         </button>
@@ -410,9 +645,13 @@
                     </div>
                     <time datetime={item.createdAt}>{formatDate(item.createdAt)}</time>
                     <div class="row-actions">
+<!-- Bouton de modification : au clic, appelle openForm('edit', item).
+     "item" est la variable temporaire de la boucle {#each} : elle représente l'objet feedback de la ligne cliquée.
+     openForm() mémorise son id dans selectedFeedbackId, puis le formulaire s'ouvre prérempli. -->
                       <button class="icon-button" aria-label={`Modifier le feedback de ${carrier?.name}`} onclick={() => openForm('edit', item)}>
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.3-.9L19 8.4a2.1 2.1 0 0 0-3-3L5.3 16.1 4 20Z" /></svg>
                       </button>
+                      
                       <button class="icon-button delete-action" aria-label={`Supprimer le feedback de ${carrier?.name}`} onclick={() => { selectedFeedbackId = item.id; showDeleteConfirmation = true; message = '' }}>
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" /></svg>
                       </button>
@@ -460,6 +699,8 @@
  <!--
 Ce bloc affiche le composant FeedbackForm uniquement lorsque formMode contient
 une valeur ('create' ou 'edit'). Si formMode = null, le formulaire n'est pas affiché.
+
+Ce bloc réagit à openForm() : dès que formMode passe de null à 'create' ou 'edit', le formulaire s'affiche.
 
 mode={formMode}
 → Passe au composant FeedbackForm la valeur de formMode ('create' ou 'edit').
