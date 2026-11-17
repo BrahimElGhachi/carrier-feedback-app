@@ -3,6 +3,7 @@
 
   import FeedbackForm from './lib/components/FeedbackForm.svelte'
   import ConfirmDelete from './lib/components/ConfirmDelete.svelte'
+  import FeedbackRow from './lib/components/FeedbackRow.svelte'
 
   // Les données ci-dessous sont des tableaux des données fictives stockés dans des variables
 
@@ -219,6 +220,16 @@
     message = ''
     selectedFeedbackId = item?.id ?? null
     formMode = mode
+  }
+
+  function editFeedback(item) {
+    openForm('edit', item)
+  }
+
+  function requestDelete(item) {
+    selectedFeedbackId = item.id
+    showDeleteConfirmation = true
+    message = ''
   }
 
 //  Fonction qui enregistre un feedback. Le composant envoie qque chose dans le paramètre (values). FormMode = null (ferme le formulaire)
@@ -527,42 +538,15 @@
               <div class="feedback-list">
                 <!-- Une ligne par feedback du carrier. item = le feedback de la ligne. -->
                 {#each carrierFeedbacks as item (item.id)}
-                  <div class="feedback-row home-feedback-row">
-                    <!--
-                BADGE DE CATÉGORIE
-                Trois class:xxx={condition} sur la même balise : une seule condition
-                est vraie à la fois, donc une seule classe de couleur est ajoutée.
-                Suivi et Finance n'ont pas de classe : ils gardent le style neutre.
-              -->
-                    <span class:communication={item.category === 'Communication'} class:punctuality={item.category === 'Ponctualité'} class:documentation={item.category === 'Documentation'} class="category-badge">{item.category}</span>
-                    <div class="feedback-copy">
-                      <p>{item.description}</p>
-                      <span>{authorName(item.authorId)}</span>
-                    </div>
-                    <time datetime={item.createdAt}>{formatDate(item.createdAt)}</time>
-                    <div class="row-actions">
-                    <!--
-                  BOUTON MODIFIER
-                  openForm('edit', item) : mode 'edit' + l'objet de la ligne cliquée.
-                  openForm mémorise item.id dans selectedFeedbackId, ce qui alimente
-                  le $derived "feedback" transmis ensuite au formulaire.
-                -->
-                      <button class="icon-button" aria-label={`Modifier le feedback de ${carrier.name}`} onclick={() => openForm('edit', item)}>
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.3-.9L19 8.4a2.1 2.1 0 0 0-3-3L5.3 16.1 4 20Z" /></svg>
-                      </button>
-                      <!--
-                  BOUTON SUPPRIMER
-                  Trois instructions au clic :
-                  1. selectedFeedbackId = item.id : on mémorise la ligne concernée ;
-                  2. showDeleteConfirmation = true : on ouvre le pop-up ConfirmDelete ;
-                  3. message = '' : on efface l'ancienne notification.
-                  La suppression réelle n'a lieu qu'après confirmation (deleteFeedback).
-                -->
-                      <button class="icon-button delete-action" aria-label={`Supprimer le feedback de ${carrier.name}`} onclick={() => { selectedFeedbackId = item.id; showDeleteConfirmation = true; message = '' }}>
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" /></svg>
-                      </button>
-                    </div>
-                  </div>
+                  <FeedbackRow
+                    feedback={item}
+                    display="home"
+                    carrierName={carrier.name}
+                    authorName={authorName(item.authorId)}
+                    formattedDate={formatDate(item.createdAt)}
+                    onEdit={editFeedback}
+                    onDelete={requestDelete}
+                  />
                 {/each}
               </div>
             {:else}
@@ -636,27 +620,15 @@
               <div class="history-card">
                 {#each items as item (item.id)}
                   {@const carrier = carriers.find((entry) => String(entry.id) === String(item.carrierId))}
-                  <div class="feedback-row history-feedback-row">
-                    <strong class="history-carrier">{carrier?.name}</strong>
-                    <span class:communication={item.category === 'Communication'} class:punctuality={item.category === 'Ponctualité'} class:documentation={item.category === 'Documentation'} class="category-badge">{item.category}</span>
-                    <div class="feedback-copy">
-                      <p>{item.description}</p>
-                      <span>{authorName(item.authorId)}</span>
-                    </div>
-                    <time datetime={item.createdAt}>{formatDate(item.createdAt)}</time>
-                    <div class="row-actions">
-<!-- Bouton de modification : au clic, appelle openForm('edit', item).
-     "item" est la variable temporaire de la boucle {#each} : elle représente l'objet feedback de la ligne cliquée.
-     openForm() mémorise son id dans selectedFeedbackId, puis le formulaire s'ouvre prérempli. -->
-                      <button class="icon-button" aria-label={`Modifier le feedback de ${carrier?.name}`} onclick={() => openForm('edit', item)}>
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.3-.9L19 8.4a2.1 2.1 0 0 0-3-3L5.3 16.1 4 20Z" /></svg>
-                      </button>
-                      
-                      <button class="icon-button delete-action" aria-label={`Supprimer le feedback de ${carrier?.name}`} onclick={() => { selectedFeedbackId = item.id; showDeleteConfirmation = true; message = '' }}>
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" /></svg>
-                      </button>
-                    </div>
-                  </div>
+                  <FeedbackRow
+                    feedback={item}
+                    display="history"
+                    carrierName={carrier?.name}
+                    authorName={authorName(item.authorId)}
+                    formattedDate={formatDate(item.createdAt)}
+                    onEdit={editFeedback}
+                    onDelete={requestDelete}
+                  />
                 {/each}
               </div>
             </section>
@@ -665,23 +637,15 @@
           <div class="history-card simple-history">
             {#each historyFeedbacks as item (item.id)}
               {@const carrier = carriers.find((entry) => String(entry.id) === String(item.carrierId))}
-              <div class="feedback-row history-feedback-row">
-                <strong class="history-carrier">{carrier?.name}</strong>
-                <span class:communication={item.category === 'Communication'} class:punctuality={item.category === 'Ponctualité'} class:documentation={item.category === 'Documentation'} class="category-badge">{item.category}</span>
-                <div class="feedback-copy">
-                  <p>{item.description}</p>
-                  <span>{authorName(item.authorId)}</span>
-                </div>
-                <time datetime={item.createdAt}>{formatDate(item.createdAt)}</time>
-                <div class="row-actions">
-                  <button class="icon-button" aria-label={`Modifier le feedback de ${carrier?.name}`} onclick={() => openForm('edit', item)}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.3-.9L19 8.4a2.1 2.1 0 0 0-3-3L5.3 16.1 4 20Z" /></svg>
-                  </button>
-                  <button class="icon-button delete-action" aria-label={`Supprimer le feedback de ${carrier?.name}`} onclick={() => { selectedFeedbackId = item.id; showDeleteConfirmation = true; message = '' }}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" /></svg>
-                  </button>
-                </div>
-              </div>
+              <FeedbackRow
+                feedback={item}
+                display="history"
+                carrierName={carrier?.name}
+                authorName={authorName(item.authorId)}
+                formattedDate={formatDate(item.createdAt)}
+                onEdit={editFeedback}
+                onDelete={requestDelete}
+              />
             {/each}
           </div>
         {/if}
@@ -931,7 +895,6 @@ Remark : tout ce qui est écrit comme attribut dans la balise du composant devie
   .button:focus-visible,
   nav a:focus-visible,
   .period-arrow:focus-visible,
-  .icon-button:focus-visible,
   .reset-button:focus-visible,
   .view-toggle button:focus-visible {
     outline: 3px solid rgb(13 112 139 / 30%);
@@ -1004,105 +967,6 @@ Remark : tout ce qui est écrit comme attribut dans la balise du composant devie
   .carrier-heading span {
     color: #5b6d82;
     font-size: 14px;
-  }
-
-  .feedback-row {
-    display: grid;
-    min-width: 0;
-    align-items: center;
-    gap: 20px;
-    padding: 16px 24px;
-    border-bottom: 1px solid #e1e7ed;
-  }
-
-  .feedback-row:last-child {
-    border-bottom: 0;
-  }
-
-  .home-feedback-row {
-    grid-template-columns: 128px minmax(0, 1fr) 92px 68px;
-  }
-
-  .category-badge {
-    justify-self: start;
-    padding: 4px 12px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  .communication {
-    color: #075e74;
-    background: #e0f1f5;
-  }
-
-  .punctuality {
-    color: #97500a;
-    background: #ffead5;
-  }
-
-  .documentation {
-    color: #5142a6;
-    background: #e9e5fa;
-  }
-
-  .feedback-copy {
-    min-width: 0;
-  }
-
-  .feedback-copy p {
-    margin: 0;
-    color: #4e6076;
-    line-height: 1.4;
-  }
-
-  .feedback-copy span {
-    display: block;
-    margin-top: 2px;
-    color: #5b6d82;
-    font-size: 13px;
-  }
-
-  time {
-    color: #5b6d82;
-    font-size: 14px;
-    white-space: nowrap;
-  }
-
-  .row-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .icon-button {
-    display: grid;
-    width: 28px;
-    height: 32px;
-    place-items: center;
-    color: #17283f;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    cursor: pointer;
-  }
-
-  .icon-button:hover {
-    background: #f1f4f7;
-  }
-
-  .icon-button svg {
-    width: 20px;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.7;
-  }
-
-  .delete-action {
-    color: #bf271e;
   }
 
   .empty-carrier {
@@ -1199,15 +1063,6 @@ Remark : tout ce qui est écrit comme attribut dans la balise du composant devie
     font-size: 19px;
   }
 
-  .history-feedback-row {
-    grid-template-columns: 110px 128px minmax(0, 1fr) 92px 68px;
-    min-height: 76px;
-  }
-
-  .history-carrier {
-    font-size: 15px;
-  }
-
   .simple-history {
     margin-top: 20px;
   }
@@ -1258,36 +1113,6 @@ Remark : tout ce qui est écrit comme attribut dans la balise du composant devie
       grid-template-columns: 1fr 1fr;
     }
 
-    .home-feedback-row,
-    .history-feedback-row {
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px 14px;
-    }
-
-    .home-feedback-row .category-badge,
-    .history-feedback-row .category-badge {
-      grid-column: 1;
-    }
-
-    .feedback-copy {
-      grid-column: 1 / -1;
-      grid-row: 2;
-    }
-
-    .feedback-row time {
-      grid-column: 1;
-      grid-row: 3;
-    }
-
-    .feedback-row .row-actions {
-      grid-column: 2;
-      grid-row: 1 / 4;
-      gap: 8px;
-    }
-
-    .history-carrier {
-      grid-column: 1;
-    }
   }
 
   @media (max-width: 420px) {
@@ -1339,8 +1164,5 @@ Remark : tout ce qui est écrit comme attribut dans la balise du composant devie
       padding: 0 16px;
     }
 
-    .feedback-row {
-      padding: 14px 16px;
-    }
   }
 </style>
