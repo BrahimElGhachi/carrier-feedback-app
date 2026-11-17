@@ -129,6 +129,9 @@
     ),
   )
 
+// Cette variable retrouve la position de la période sélectionnée dans la liste disponible.
+  let periodIndex = $derived(availablePeriods.indexOf(selectedPeriod))
+
 // Variable qui contient uniquement les feedbacks de la période MBR sélectionnée.
 // filter() parcourt feedbacks et conserve les feedbacks dont mbrPeriod correspond à selectedPeriod.
 // Comme il s'agit d'un $derived, la liste est recalculée automatiquement lorsque feedbacks ou selectedPeriod change.
@@ -325,10 +328,11 @@
     showDeleteConfirmation = false
   }
 
-  function shiftPeriod(period, offset) {
-    const [year, month] = period.split('-').map(Number)
-    const date = new Date(year, month - 1 + offset, 1)
-    selectedPeriod = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+// Cette fonction sélectionne la période disponible voisine selon le sens de la flèche.
+  function shiftPeriod(offset) {
+    const nextIndex = periodIndex - offset
+    if (nextIndex < 0 || nextIndex >= availablePeriods.length) return
+    selectedPeriod = availablePeriods[nextIndex]
   }
 
   function formatDate(value) {
@@ -436,13 +440,10 @@
           <label class="period-label" for="home-period">Période MBR</label>
               <!--
         FLÈCHE "PÉRIODE PRÉCÉDENTE"
-        onclick appelle shiftPeriod(selectedPeriod, -1) : on passe la période
-        actuelle et un décalage de -1 mois. shiftPeriod recalcule la période
-        et modifie selectedPeriod. Les flèches ne sont donc que des télécommandes
-        pour changer la valeur du <select>.
+        shiftPeriod(-1) sélectionne la période disponible immédiatement plus ancienne.
       -->
           <div class="period-picker">
-            <button class="period-arrow" aria-label="Période précédente" onclick={() => shiftPeriod(selectedPeriod, -1)}>
+            <button class="period-arrow" aria-label="Période précédente" disabled={periodIndex < 0 || periodIndex >= availablePeriods.length - 1} onclick={() => shiftPeriod(-1)}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
             </button>
               <!--
@@ -459,8 +460,8 @@
                 <option value={period}>{period}</option>
               {/each}
             </select>
-             <!-- FLÈCHE "PÉRIODE SUIVANTE" : même principe, avec +1. -->
-            <button class="period-arrow" aria-label="Période suivante" onclick={() => shiftPeriod(selectedPeriod, 1)}>
+             <!-- FLÈCHE "PÉRIODE SUIVANTE" : sélectionne la période disponible immédiatement plus récente. -->
+            <button class="period-arrow" aria-label="Période suivante" disabled={periodIndex <= 0} onclick={() => shiftPeriod(1)}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
             </button>
           </div>
@@ -897,6 +898,11 @@ Remark : tout ce qui est écrit comme attribut dans la balise du composant devie
     border-radius: 10px;
     background: #fff;
     cursor: pointer;
+  }
+
+  .period-arrow:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .period-arrow svg {
