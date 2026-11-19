@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte'
+  import { categories } from '../constants.js'
 
   /**
    * @typedef {{ id: string | number, name: string }} CarrierOption
@@ -36,8 +37,6 @@
 // Récupère dans "props" toutes les props transmises par App.svelte
 // via les attributs de la balise <FeedbackForm>.
 let props = $props()
-
-  const categories = ['Communication', 'Ponctualité', 'Documentation', 'Suivi', 'Finance']
 
 // Retourne le mois actuel au format "AAAA-MM" (ex : "2026-10").
 // Cette valeur sert de période MBR par défaut lorsqu'aucune période n'est déjà définie.

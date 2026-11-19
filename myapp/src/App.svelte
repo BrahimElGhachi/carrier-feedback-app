@@ -4,22 +4,7 @@
   import FeedbackForm from './lib/components/FeedbackForm.svelte'
   import ConfirmDelete from './lib/components/ConfirmDelete.svelte'
   import FeedbackRow from './lib/components/FeedbackRow.svelte'
-
-  // Les données ci-dessous sont des tableaux des données fictives stockés dans des variables
-
-  const carriers = [
-    { id: 1, name: 'Maersk Line' },
-    { id: 2, name: 'CMA CGM' },
-    { id: 3, name: 'Hapag LLoyd' },
-  ]
-
-  const authors = [
-    { id: 1, fullName: 'Brahim El Ghachi' },
-    { id: 2, fullName: 'Franck Vossenat' },
-    { id: 3, fullName: 'Yi-Shin Cai' },
-    { id: 4, fullName: 'Orsolya Varga' },
-    { id: 5, fullName: 'Christian Lucas Tenas' },
-  ]
+  import { carriers, authors, categories, initialPeriods } from './lib/constants.js'
 
   let feedbacks = $state([
     {
@@ -69,8 +54,6 @@
       createdAt: '2026-08-12T10:25:00Z',
     },
   ])
-  const categories = ['Communication', 'Ponctualité', 'Documentation', 'Suivi', 'Finance']
-  const initialPeriods = ['2026-09', '2026-08', '2026-07', '2026-06']
 
   // VARIABLES D'ETAT //
 
